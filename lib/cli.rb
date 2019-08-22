@@ -36,9 +36,9 @@ class CommandLineInterface
   # (when giving them numbered list options)
   def input_to_index(array, input)
     index = input.to_i - 1
-    if (array.length - 1) < index.abs
+    if (array.length - 1) < index || index < 0
       self.invalid_input_prompt
-      self.process_input(array)
+      # self.process_input(array)
     else
       return index
     end
@@ -188,10 +188,16 @@ class CommandLineInterface
       self.list_array(possible_interests)
       # get user choice and call User#add_interest to create interest association
       index = self.process_input(possible_interests, "self.add_or_remove_interests")
-      self.user.add_interest(possible_interests[index])
-      self.clear
-      puts "Type 'more' to add more interests or 'done' to view your profile"
-      self.choose_interests_handler(self.process_input(possible_interests, "self.add_or_remove_interests"))
+      if !index.is_a?(Integer)
+        self.invalid_input_prompt
+        self.choose_interests
+      else
+        self.user.add_interest(possible_interests[index])
+        self.clear
+        puts "Type 'more' to add more interests or 'done' to view your profile"
+        ## ERROR OCCURRING HERE
+        self.choose_interests_handler(self.process_input(possible_interests, "self.add_or_remove_interests"))
+      end
     end
   end
 
@@ -330,7 +336,6 @@ class CommandLineInterface
       self.clear
       self.choose_interests
     elsif input == 1
-      ### write some functions to remove interests
       self.clear
       self.remove_interests
     else
@@ -340,16 +345,36 @@ class CommandLineInterface
   end
 
   def remove_interests
+    self.clear
     puts "Please enter number of interest to remove"
     # display interests
     self.list_array(self.user.interests)
     # get user input and convert to array index of user's interests
     index = self.process_input(self.user.interests, "self.add_or_remove_interests")
-    self.user.remove_interest(self.user.interests[index])
-    self.clear
-    #TODO: Give user option to remove more interests
-    self.display_user_profile
+    if !index.is_a?(Integer)
+      self.invalid_input_prompt
+      self.remove_interests
+    else
+      self.user.remove_interest(self.user.interests[index])
+      self.clear
+      #TODO: Give user option to remove more interests
+      puts "Type 'more' to remove more interests or 'done' to view your profile"
+      self.remove_interests_handler(self.process_input(self.user.interests, "self.add_or_remove_interests"))
+    end
   end
+
+  def remove_interests_handler(input)
+    if input == "more"
+      self.remove_interests
+    elsif input == "done"
+      self.user.save
+      self.display_user_profile
+    else
+      self.invalid_input_prompt
+      self.remove_interests
+    end
+  end
+
 
   ########## FIND EVENTS ################
 
@@ -410,7 +435,7 @@ class CommandLineInterface
   def show_rsvps
     self.clear
     self.list_array(self.user.events)
-    puts "Select an event to see more details."
+    puts "Select an event to see more details or type 'back' to return to your profile."
     self.rsvp_handler(self.process_input(self.user.events, "self.display_user_profile"))
   end
 
